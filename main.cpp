@@ -1,5 +1,8 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #undef main
+#include <chrono>
+#include <thread>
 #include <iostream>
 #include "render.h"
 
@@ -7,13 +10,17 @@
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
 
-//The surface contained by the window
-SDL_Surface* gScreenSurface = NULL;
-
 //The image we will load and show on the screen
-SDL_Surface* gHelloWorld = NULL;
+SDL_Renderer* gImg = NULL;
 
-Render* r = new Render();
+//User quit boolean
+bool quit = false;
+
+//Main render "pipeline" (read render.cpp for more)
+Render* render = new Render();
+
+//FPS
+uint8_t fps = 60;
 
 bool init() {
    //Initialization flag
@@ -27,42 +34,18 @@ bool init() {
    }
    else
    {
-       //Create window
-       gWindow = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, r->getHeight(), r->getWidth(), SDL_WINDOW_SHOWN);
-       if (gWindow == NULL)
-       {
-           printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-           success = false;
-       }
-       else
-       {
-           //Get window surface
-           gScreenSurface = SDL_GetWindowSurface(gWindow);
-       }
+
+       //Create window and render
+       SDL_CreateWindowAndRenderer(render->getHeight(), render->getWidth(), 0, &gWindow, &gImg);
    }
-   return success;
-}
-
-bool loadMedia() {
-   //Loading success flag
-   bool success = true;
-
-   //Load splash image
-   gHelloWorld = SDL_LoadBMP("C:/Users/akelp/OneDrive/Documents/raycasting/view.bmp");
-   if (gHelloWorld == NULL)
-   {
-       printf("Unable to load image %s! SDL Error: %s\n", "/view.bmp", SDL_GetError());
-       success = false;
-   }
-
    return success;
 }
 
 void close()
 {
    //Deallocate surface
-   SDL_FreeSurface(gHelloWorld);
-   gHelloWorld = NULL;
+   SDL_DestroyRenderer(gImg);
+   gImg = NULL;
 
    //Destroy window
    SDL_DestroyWindow(gWindow);
@@ -75,29 +58,54 @@ void close()
 
 int main()
 {
-    r->main_render();
+    
     if (!init())
     {
         printf("Failed to initialize!\n");
     }
-    else
+    auto t1 = std::chrono::steady_clock::now();
+    SDL_Event e;
+    while (quit == false)
     {
-       //Load media
-       if (!loadMedia())
-       {
-           printf("Failed to load media!\n");
-       }
-       else
-       {
-           //Apply the image
-           SDL_BlitSurface(gHelloWorld, NULL, gScreenSurface, NULL);
-           //Update the surface
-           SDL_UpdateWindowSurface(gWindow);
-           //Hack to get window to stay up
-           SDL_Event e; bool quit = false; while (quit == false) { while (SDL_PollEvent(&e)) { if (e.type == SDL_QUIT) quit = true; } }
-       }
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+        if (fp_ms.count() < 20) { // sleep if less than 20 ms since last re-rendering
+            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+            t1 = t2;
+        }
+
+        while (SDL_PollEvent(&e))
+        {
+            if (e.type == SDL_QUIT) quit = true;
+            else if (e.type == SDL_KEYDOWN) {
+                switch (e.key.keysym.sym)
+                {
+                case SDLK_UP:
+                    render->move(FORWARD);
+                    break;
+
+                case SDLK_DOWN:
+                    render->move(BACKWARD);
+                    break;
+
+                case SDLK_LEFT:
+                    render->move(RT_LEFT);
+                    break;
+
+                case SDLK_RIGHT:
+                    render->move(RT_RIGHT);
+                    break;
+
+                default:
+                    break;
+                }
+            } 
+        }
+
+        render->main_render(gImg);
+        //Update the surface
+        SDL_RenderPresent(gImg);
     }
-
-
+  
     return 0;
 }
