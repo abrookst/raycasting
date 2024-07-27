@@ -25,6 +25,8 @@ class Render {
 		std::vector<uint32_t>* getMap() { return &map_view; } 
 		std::vector<uint32_t>* getView() { return &main_view; } 
 		void move(Movement m);
+		void toggle_map();
+
 	private:
 		size_t win_w;
 		size_t win_h;
@@ -34,6 +36,7 @@ class Render {
 		float move_speed;
 		float look_speed;
 		float fov;
+		bool map_enabled;
 		std::vector<uint32_t> map_view;
 		std::vector<uint32_t> main_view;
 		Map* draw_map(std::vector<uint32_t>& image, const size_t& win_w, const size_t& win_h);

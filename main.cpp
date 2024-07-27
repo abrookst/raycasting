@@ -4,6 +4,8 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+
+#include "draw.h"
 #include "render.h"
 
 
@@ -41,8 +43,7 @@ bool init() {
    return success;
 }
 
-void close()
-{
+void close(){
    //Deallocate surface
    SDL_DestroyRenderer(gImg);
    gImg = NULL;
@@ -55,10 +56,8 @@ void close()
    SDL_Quit();
 }
 
+void run() {
 
-int main()
-{
-    
     if (!init())
     {
         printf("Failed to initialize!\n");
@@ -95,17 +94,63 @@ int main()
                 case SDLK_RIGHT:
                     render->move(RT_RIGHT);
                     break;
-
+                case SDLK_m:
+                    render->toggle_map();
+                    break;
                 default:
                     break;
                 }
-            } 
+            }
         }
 
         render->main_render(gImg);
         //Update the surface
         SDL_RenderPresent(gImg);
     }
+
+}
+
+
+int main(){
+    
+    int selection;
+    std::cout << "Pick an action:" << std::endl;
+    std::cout << "0. Exit" << std::endl;
+    std::cout << "1. Create animation" << std::endl;
+    std::cout << "2. Run" << std::endl;
+    std::cin >> selection;
+    if (selection == 0) {
+        return 0;
+    }
+    else if (selection == 1) {
+        std::cout << "Pick a Direction:" << std::endl;
+        std::cout << "0. Forward" << std::endl;
+        std::cout << "1. Backwards" << std::endl;
+        std::cout << "2. Left" << std::endl;
+        std::cout << "3. Right" << std::endl;
+        std::cin >> selection;
+        if (selection > 3 || selection < 0) {
+            std::cout << "Invalid Choice" << std::endl;
+            return main();
+        }
+        Movement m = static_cast<Movement>(selection);
+        std::cout << "Enter Number of Frames (Max: 360):" << std::endl;
+        std::cin >> selection;
+        selection = selection % 360;
+        std::cout << std::endl;
+        animation(gImg, render, m, selection);
+        return 0;
+    }
+    else if (selection == 2) {
+        std::cout << "running..." << std::endl;
+        run();
+    }
+    else {
+        std::cout << "Invalid Choice" << std::endl;
+        return main();
+    }
+
+    
   
     return 0;
 }

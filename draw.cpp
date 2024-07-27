@@ -1,5 +1,11 @@
 #include <fstream>
 #include <cassert>
+#include <sstream>
+#include <fstream>
+#include <chrono>
+#include <thread>
+#include <iostream>
+#include <SDL.h>
 
 #include "draw.h"
 
@@ -31,5 +37,27 @@ void draw_rectangle(std::vector<uint32_t> &image, const uint32_t &color, const u
         for (size_t i = x1; i<x2; i++) {
             image[i+j*win_w] = color;
         }
+    }
+}
+
+void print_progress(uint8_t frame, uint8_t frames) {
+    int adjusted_frame = static_cast<int>(((float)frame / frames) * 100);
+    std::string progress = "[" + std::string(adjusted_frame, '=') + std::string(100 - adjusted_frame, ' ') + "]";
+    std::cout << "\r\033[F" << adjusted_frame << "\%\n" << progress << std::flush;
+    std::this_thread::sleep_for(std::chrono::milliseconds(3));
+}
+
+void animation(SDL_Renderer* SDLrenderer, Render* renderer, Movement m, uint32_t frames) {
+    for (uint8_t frame = 1; frame <= frames; frame++) {
+        renderer->move(m);
+        renderer->main_render(SDLrenderer);
+        std::stringstream ss;
+        ss << ".\\animation\\map_" << std::to_string(frame) << ".ppm";
+        drop_ppm_image(ss.str(), *renderer->getMap(), renderer->getWidth(), renderer->getHeight());
+        ss.str(std::string());
+        ss << ".\\animation\\main_" << std::to_string(frame) << ".ppm";
+        drop_ppm_image(ss.str(), *renderer->getView(), renderer->getWidth(), renderer->getHeight());
+        ss.str(std::string());
+        print_progress(frame, frames);
     }
 }

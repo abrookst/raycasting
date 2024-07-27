@@ -15,11 +15,12 @@
 Render::Render() {
     win_w = 512;
     win_h = 512;
-    player_x = 2;
+    player_x = 5;
     player_y = 10;
     player_theta = 0;
-    move_speed = 1;
-    look_speed = .25;
+    move_speed = .25;
+    map_enabled = false;
+    look_speed = (float)((2.0 * M_PI)/180);
     fov = static_cast<float>(M_PI / 3.);
     map_view = std::vector<uint32_t>(win_w * win_h);
     main_view = std::vector<uint32_t>(win_w * win_h, pack_color(255, 255, 255));
@@ -59,7 +60,6 @@ Map* Render::draw_map(std::vector<uint32_t> &image, const size_t &win_w, const s
 
 bool movecheck(float x, float y) {
     Map* m = new Map();
-    std::cout << m->get_value(x, y) << std::endl;
     if (m->get_value(std::floor(x), std::floor(y)) != -16) {
         return false;
     }
@@ -90,18 +90,22 @@ void Render::move(Movement m){
     case RT_LEFT:
         player_theta -= look_speed;
         if (player_theta < 0) {
-            player_theta += 2 * M_PI;
+            player_theta += (float)(2 * M_PI);
         }
         break;
     case RT_RIGHT:
         player_theta += look_speed;
         if (player_theta > (2 * M_PI)) {
-            player_theta -= 2 * M_PI; 
+            player_theta -= (float)(2 * M_PI);
         }
         break;
     default:
         return;
     }
+}
+
+void Render::toggle_map() {
+    map_enabled = !map_enabled;
 }
 
 void Render::render_scene(SDL_Renderer* gRender, std::vector<uint32_t> view) {
@@ -153,9 +157,13 @@ void Render::main_render(SDL_Renderer* gRender) {
             map_view[pix_x + pix_y*win_w] = pack_color(255, 255, 255);
         }
     }
-    std::cout << player_x << "|" << player_y << "|" << player_theta * (180 / M_PI) << std::endl;
-    //drop_ppm_image("./map.ppm", map_view, win_w, win_h);
-    //drop_ppm_image("./view.ppm", main_view, win_w, win_h);
+
     
-    render_scene(gRender, main_view);
+    
+    if (map_enabled) {
+        render_scene(gRender, map_view);
+    }
+    else {
+        render_scene(gRender, main_view);
+    }
 }
