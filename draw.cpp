@@ -43,7 +43,7 @@ void draw_rectangle(std::vector<uint32_t> &image, const uint32_t &color, const u
 void print_progress(uint8_t frame, uint8_t frames) {
     int adjusted_frame = static_cast<int>(((float)frame / frames) * 100);
     std::string progress = "[" + std::string(adjusted_frame, '=') + std::string(100 - adjusted_frame, ' ') + "]";
-    std::cout << "\r\033[F" << adjusted_frame << "\%\n" << progress << std::flush;
+    std::cout << "\r\033[F" << adjusted_frame << "%\n" << progress << std::flush;
     std::this_thread::sleep_for(std::chrono::milliseconds(3));
 }
 

@@ -38,7 +38,7 @@ bool init() {
    {
 
        //Create window and render
-       SDL_CreateWindowAndRenderer(render->getHeight(), render->getWidth(), 0, &gWindow, &gImg);
+       SDL_CreateWindowAndRenderer(static_cast<int>(render->getHeight()), static_cast<int>(render->getWidth()), 0, &gWindow, &gImg);
    }
    return success;
 }

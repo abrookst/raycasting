@@ -16,11 +16,11 @@ Render::Render() {
     win_w = 512;
     win_h = 512;
     player_x = 5;
-    player_y = 10;
-    player_theta = 0;
-    move_speed = .25;
+    player_y = 5;
+    player_theta = 1.6f;
+    move_speed = .25f;
     map_enabled = false;
-    look_speed = (float)((2.0 * M_PI)/180);
+    look_speed = (float)((2.0 * M_PI)/360);
     fov = static_cast<float>(M_PI / 3.);
     map_view = std::vector<uint32_t>(win_w * win_h);
     main_view = std::vector<uint32_t>(win_w * win_h, pack_color(255, 255, 255));
@@ -38,12 +38,12 @@ Map* Render::draw_map(std::vector<uint32_t> &image, const size_t &win_w, const s
 
     Map *m = new Map();
 
-    const uint16_t rect_w = win_w/m->w;
-    const uint16_t rect_h = win_h/m->h;
+    const uint16_t rect_w = static_cast<uint16_t>(win_w/m->w);
+    const uint16_t rect_h = static_cast<uint16_t>(win_h/m->h);
     for (size_t j=0; j<m->h; j++) { // draw the map
         for (size_t i=0; i<m->w; i++) {
-            uint16_t rect_x = i*rect_w;
-            uint16_t rect_y = j*rect_h;
+            uint16_t rect_x = static_cast<uint16_t>(i*rect_w);
+            uint16_t rect_y = static_cast<uint16_t>(j*rect_h);
             if(m->get_value(i,j) == 0){
                 draw_rectangle(image, m->wall_color, rect_x,rect_y,rect_x+rect_w,rect_y+rect_h,win_w);
             }
@@ -60,7 +60,7 @@ Map* Render::draw_map(std::vector<uint32_t> &image, const size_t &win_w, const s
 
 bool movecheck(float x, float y) {
     Map* m = new Map();
-    if (m->get_value(std::floor(x), std::floor(y)) != -16) {
+    if (m->get_value(static_cast<size_t>(std::floor(x)), static_cast<size_t>(std::floor(y))) != -16) {
         return false;
     }
     return true;
@@ -115,7 +115,7 @@ void Render::render_scene(SDL_Renderer* gRender, std::vector<uint32_t> view) {
         size_t y = i / win_w;
         size_t x = i % win_w;
         SDL_SetRenderDrawColor(gRender, r, g, b, a);
-        SDL_RenderDrawPoint(gRender, x, y);
+        SDL_RenderDrawPoint(gRender, static_cast<int>(x), static_cast<int>(y));
     }
 }
 
@@ -129,31 +129,31 @@ void Render::main_render(SDL_Renderer* gRender) {
     //draw player
     uint32_t player_color = pack_color(0,255,0);
     
-    uint16_t rx = player_x*rect_w;
-    uint16_t ry = player_y*rect_h;
+    uint16_t rx = static_cast<uint16_t>(player_x*rect_w);
+    uint16_t ry = static_cast<uint16_t>(player_y*rect_h);
     draw_rectangle(map_view, player_color, rx, ry, rx+5, ry+5, win_w);
 
     //raycasting
 
-    for (size_t i=0; i<win_w; i++) { 
+    for (uint16_t i=0; i<win_w; i++) { 
         float angle = player_theta-fov/2 + fov*i/float(win_w);
-        for (float t=0; t<20; t+=.05) {
+        for (float t=0; t<20; t+=.05f) {
             float cx = player_x + t*cos(angle);
             float cy = player_y + t*sin(angle);
             if (!m->is_empty(int(cx),int(cy))){
-                uint16_t row_h = win_h / (t*cos(angle-player_theta));
+                uint16_t row_h = static_cast<uint16_t>(win_h / (t*cos(angle-player_theta)));
                 if(m->get_value(int(cx),int(cy)) == 0){
-                    draw_rectangle(main_view, m->wall_color, i, (win_h/2)-(row_h/2),i+1,(win_h/2)+(row_h/2),win_w);
+                    draw_rectangle(main_view, m->wall_color, i, static_cast<uint16_t>((win_h/2)-(row_h/2)), i+1, static_cast<uint16_t>((win_h/2)+(row_h/2)), static_cast<uint16_t>(win_w));
                 }
                 else{
-                    draw_rectangle(main_view, m->door_color, i, (win_h/2)-(row_h/2),i+1,(win_h/2)+(row_h/2),win_w);
+                    draw_rectangle(main_view, m->door_color, i, static_cast<uint16_t>((win_h/2)-(row_h/2)), i+1, static_cast<uint16_t>((win_h/2)+(row_h/2)), static_cast<uint16_t>(win_w));
                 }
                 break;
             }
 
             // draw the visibility cone
-            size_t pix_x = cx*rect_w;
-            size_t pix_y = cy*rect_h;
+            size_t pix_x = static_cast<size_t>(cx*rect_w);
+            size_t pix_y = static_cast<size_t>(cy*rect_h);
             map_view[pix_x + pix_y*win_w] = pack_color(255, 255, 255);
         }
     }
