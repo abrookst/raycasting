@@ -136,7 +136,7 @@ int main(){
         Movement m = static_cast<Movement>(selection);
         std::cout << "Enter Number of Frames (Max: 360):" << std::endl;
         std::cin >> selection;
-        selection = selection % 360;
+        selection = selection % 361;
         std::cout << std::endl;
         animation(gImg, render, m, selection);
         return 0;
