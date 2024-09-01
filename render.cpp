@@ -24,17 +24,11 @@ Render::Render() {
     fov = static_cast<float>(M_PI / 3.);
     map_view = std::vector<uint32_t>(win_w * win_h);
     main_view = std::vector<uint32_t>(win_w * win_h, pack_color(255, 255, 255));
+    wall_textures = new Texture("./textures/walltextures.png");
 }
 
 Map* Render::draw_map(std::vector<uint32_t> &image, const size_t &win_w, const size_t &win_h){
-    for (size_t j = 0; j<win_h; j++) { // fill the screen with color gradients
-        for (size_t i = 0; i<win_w; i++) {
-            uint8_t r = static_cast<uint8_t>(255 - 255*j/float(win_h)); // varies between 0 and 255 as j sweeps the vertical
-            uint8_t g = static_cast<uint8_t>(255 - 255*i/float(win_w)); // varies between 0 and 255 as i sweeps the horizontal
-            uint8_t b = static_cast<uint8_t>(255-((255*i)+(255*j))/(float(win_w)+float(win_h)));
-            image[i+j*win_w] = pack_color(r, g, b);
-        }
-    }
+    
 
     Map *m = new Map();
 
@@ -44,14 +38,11 @@ Map* Render::draw_map(std::vector<uint32_t> &image, const size_t &win_w, const s
         for (size_t i=0; i<m->w; i++) {
             uint16_t rect_x = static_cast<uint16_t>(i*rect_w);
             uint16_t rect_y = static_cast<uint16_t>(j*rect_h);
-            if(m->get_value(i,j) == 0){
-                draw_rectangle(image, m->wall_color, rect_x,rect_y,rect_x+rect_w,rect_y+rect_h,win_w);
-            }
-            else if(m->get_value(i,j) == 1){
-                draw_rectangle(image, m->door_color, rect_x,rect_y,rect_x+rect_w,rect_y+rect_h,win_w);
+            if(m->is_empty(i,j)){
+                continue;
             }
             else{
-                continue;
+                draw_rectangle(image, wall_textures->get(0,0, m->get_value(i, j)), rect_x, rect_y, rect_x + rect_w, rect_y + rect_h, win_w);
             }
         }
     }
@@ -119,15 +110,27 @@ void Render::render_scene(SDL_Renderer* gRender, std::vector<uint32_t> view) {
     }
 }
 
+int wall_x_texcoord(const float x, const float y, Texture& tex_walls) {
+    float hitx = x - floor(x + .5); // hitx and hity contain (signed) fractional parts of x and y,
+    float hity = y - floor(y + .5); // they vary between -0.5 and +0.5, and one of them is supposed to be very close to 0
+    int tex = hitx * tex_walls.size;
+    if (std::abs(hity) > std::abs(hitx)) // we need to determine whether we hit a "vertical" or a "horizontal" wall (w.r.t the map)
+        tex = hity * tex_walls.size;
+    if (tex < 0) // do not forget x_texcoord can be negative, fix that
+        tex += tex_walls.size;
+    assert(tex >= 0 && tex < (int)tex_walls.size);
+    return tex;
+}
+
 void Render::main_render(SDL_Renderer* gRender) {
-    main_view = std::vector<uint32_t>(win_w * win_h, pack_color(255, 255, 255));
-    map_view = std::vector<uint32_t>(win_w * win_h);
+    main_view = std::vector<uint32_t>(win_w * win_h, pack_color(8, 20, 30));
+    map_view = std::vector<uint32_t>(win_w * win_h, pack_color(32, 57, 79));
     Map *m = draw_map(map_view,win_w,win_h);
     const size_t rect_w = win_w/m->w;
     const size_t rect_h = win_h/m->h;
 
     //draw player
-    uint32_t player_color = pack_color(0,255,0);
+    uint32_t player_color = pack_color(78, 73, 95);
     
     uint16_t rx = static_cast<uint16_t>(player_x*rect_w);
     uint16_t ry = static_cast<uint16_t>(player_y*rect_h);
@@ -142,11 +145,15 @@ void Render::main_render(SDL_Renderer* gRender) {
             float cy = player_y + t*sin(angle);
             if (!m->is_empty(int(cx),int(cy))){
                 uint16_t row_h = static_cast<uint16_t>(win_h / (t*cos(angle-player_theta)));
-                if(m->get_value(int(cx),int(cy)) == 0){
-                    draw_rectangle(main_view, m->wall_color, i, static_cast<uint16_t>((win_h/2)-(row_h/2)), i+1, static_cast<uint16_t>((win_h/2)+(row_h/2)), static_cast<uint16_t>(win_w));
-                }
-                else{
-                    draw_rectangle(main_view, m->door_color, i, static_cast<uint16_t>((win_h/2)-(row_h/2)), i+1, static_cast<uint16_t>((win_h/2)+(row_h/2)), static_cast<uint16_t>(win_w));
+                int value = m->get_value(int(cx), int(cy));
+                size_t column_height = win_h / (t * cos(angle - player_theta));
+                int x_texcoord = wall_x_texcoord(cx, cy, *wall_textures);
+                std::vector<uint32_t> column = wall_textures->get_scaled_column(value, x_texcoord, column_height);
+                for (size_t j = 0; j < column_height; j++) { // copy the texture column to the framebuffer
+                    int pix_y = j + win_h / 2 - column_height / 2;
+                    if (pix_y >= 0 && pix_y < (int)win_h) {
+                        set_pixel(main_view, i, pix_y, win_w, win_h, column[j]);
+                    }
                 }
                 break;
             }
@@ -154,7 +161,7 @@ void Render::main_render(SDL_Renderer* gRender) {
             // draw the visibility cone
             size_t pix_x = static_cast<size_t>(cx*rect_w);
             size_t pix_y = static_cast<size_t>(cy*rect_h);
-            map_view[pix_x + pix_y*win_w] = pack_color(255, 255, 255);
+            map_view[pix_x + pix_y*win_w] = pack_color(195, 163, 138);
         }
     }
 

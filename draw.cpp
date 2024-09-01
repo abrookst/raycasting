@@ -32,6 +32,11 @@ void drop_ppm_image(const std::string filename, const std::vector<uint32_t> &ima
     ofs.close();
 }
 
+void set_pixel(std::vector<uint32_t>& image, const size_t x, const size_t y, const size_t w, const size_t h, const uint32_t color) {
+    assert(image.size() == w * h && x < w && y < h);
+    image[x + y * w] = color;
+}
+
 void draw_rectangle(std::vector<uint32_t> &image, const uint32_t &color, const uint16_t &x1, const uint16_t &y1, const uint16_t &x2, const uint16_t &y2, const size_t win_w){
     for (size_t j = y1; j<y2; j++) {
         for (size_t i = x1; i<x2; i++) {

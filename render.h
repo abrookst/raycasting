@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 #include "map.h"
+#include "texture.h"
 
 enum Movement {
 	FORWARD,
@@ -39,6 +40,7 @@ class Render {
 		bool map_enabled;
 		std::vector<uint32_t> map_view;
 		std::vector<uint32_t> main_view;
+		Texture* wall_textures;
 		Map* draw_map(std::vector<uint32_t>& image, const size_t& win_w, const size_t& win_h);
 		void DisplayRenderDetails();
 		void render_scene(SDL_Renderer* gRender, std::vector<uint32_t> view);
